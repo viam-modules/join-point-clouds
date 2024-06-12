@@ -1,0 +1,41 @@
+# appimage-builder recipe see https://appimage-builder.readthedocs.io for details
+version: 1
+script:
+ - rm -rf AppDir | true
+ - mkdir -p $TARGET_APPDIR/usr/bin
+ - cp ./build/join-point-clouds $TARGET_APPDIR/usr/bin/
+ - mkdir -p $TARGET_APPDIR/usr/share/icons/viam/256x256/apps/
+ - cp ./packaging/viam-server.png $TARGET_APPDIR/usr/share/icons/viam/256x256/apps/viam-server.png
+ - chmod 755 $TARGET_APPDIR/usr/bin/*
+
+AppDir:
+  path: ./AppDir
+  app_info:
+    id: com.viam.camerajpc
+    name: viam-camera-join-point-clouds
+    icon: viam-server
+    version: "latest"
+    exec: usr/bin/join-point-clouds
+    exec_args: $@
+  apt:
+    arch:
+    - arm64
+    allow_unauthenticated: true
+    sources:
+    - sourceline: deb [trusted=yes] http://deb.debian.org/debian bookworm main
+    - sourceline: deb [trusted=yes] http://deb.debian.org/debian-security bookworm-security main
+    - sourceline: deb [trusted=yes] http://deb.debian.org/debian bookworm-updates main
+    include:
+    - libprotobuf32:arm64
+    - libpcl-common1.13:arm64
+  files:
+    include:
+    - /usr/local/lib/libviamsdk* 
+    - /usr/local/lib/libviamapi* 
+    - /usr/local/lib/libviam_rust_utils* 
+    exclude:
+    - usr/share/man
+    - usr/share/doc
+AppImage:
+  arch: aarch64
+  comp: gzip
