@@ -32,12 +32,12 @@ using namespace viam::sdk;
 
 Eigen::Vector3f parseTranslation(const google::protobuf::ListValue& list_value) {
     if (list_value.values_size() != 3) {
-        throw std::invalid_argument("Translation must have exactly 3 elements.");
+        throw std::invalid_argument("translation must have exactly 3 elements.");
     }
     Eigen::Vector3f translation;
     for (int i = 0; i < 3; ++i) {
         if (!list_value.values(i).has_number_value()) {
-            throw std::invalid_argument("All elements of translation must be numeric.");
+            throw std::invalid_argument("all elements of translation must be numeric.");
         }
         translation(i) = list_value.values(i).number_value();
     }
@@ -46,7 +46,7 @@ Eigen::Vector3f parseTranslation(const google::protobuf::ListValue& list_value) 
 
 Eigen::Quaternionf parseQuaternion(const google::protobuf::ListValue& list_value) {
     if (list_value.values_size() != 4) {
-        throw std::invalid_argument("Quaternion must have exactly 4 elements.");
+        throw std::invalid_argument("quaternion must have exactly 4 elements.");
     }
     Eigen::Quaternionf quaternion(
         list_value.values(3).number_value(), // w
@@ -73,6 +73,7 @@ class JoinPointClouds : public Camera, public Reconfigurable {
 
         std::vector<std::shared_ptr<Camera>> cams;
         for (auto& dep : deps) {
+            // TODO: Refactor to getCams helper vvv
             std::shared_ptr<Resource> cam_resource = dep.second;
             if (cam_resource->api().to_string() != API::get<Camera>().to_string()) {
                 std::ostringstream buffer;
@@ -88,11 +89,13 @@ class JoinPointClouds : public Camera, public Reconfigurable {
                 throw std::invalid_argument(buffer.str());
             }
             std::cout << "camera " << cam->name() << " registered\n";
+            // TODO: Refactor to getCams helper ^^^
             cams.push_back(cam);
         }
 
         std::vector<std::shared_ptr<Eigen::Matrix4f>> transformations;
         auto attrs = cfg.attributes();
+        // TODO: Refactor to getTransformations helper vvv  input: attrs;  output: transformations / throws error
         if (attrs->count("transforms") == 1) {
             std::shared_ptr<ProtoType> transforms_proto = attrs->at("transforms");
             auto transforms_value = transforms_proto->proto_value();
@@ -140,12 +143,14 @@ class JoinPointClouds : public Camera, public Reconfigurable {
             }
             std::cout << "no 'transforms' attribute specified; using world coordinates\n";
         }
+        // TODO: Refactor to getTransformations ^^^
 
         for (size_t i = 0; i < cams.size(); ++i) {
             camTransformPairs.push_back(std::make_pair(cams[i], transformations[i]));
         }
         std::cout << "size of camTransformPairs: " << camTransformPairs.size() << std::endl;
 
+        // TODO: Refactor to getTargetFrame helper vvv
         if (attrs->count("target_frame") == 1) {
             std::shared_ptr<ProtoType> target_frame_proto = attrs->at("target_frame");
             auto target_frame_value = target_frame_proto->proto_value();
@@ -175,6 +180,7 @@ class JoinPointClouds : public Camera, public Reconfigurable {
             throw std::invalid_argument(
                 "could not find required 'target_frame' attribute in the config");
         }
+        // TODO: Refactor to getTargetFrame helper ^^^
     }
 
     JoinPointClouds(Dependencies deps, ResourceConfig cfg) : Camera(cfg.name()) {

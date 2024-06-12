@@ -1,6 +1,6 @@
 #include "utils.h"
 
-// Override stream operator for RawPCD better printing
+// Override stream operator for RawPCD better debug printing
 std::ostream& operator<<(std::ostream& os, const RawPCD& pcd) {
     os << "RawPCD:" << std::endl;
     os << "  Fields: ";
