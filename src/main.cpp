@@ -76,17 +76,15 @@ class JoinPointClouds : public Camera, public Reconfigurable {
             // TODO: Refactor to getCams helper vvv
             std::shared_ptr<Resource> cam_resource = dep.second;
             if (cam_resource->api().to_string() != API::get<Camera>().to_string()) {
-                std::ostringstream buffer;
-                buffer << "dependency " << cam_resource->api().to_string()
-                       << " is not a camera resource\n";
-                throw std::invalid_argument(buffer.str());
+                throw std::invalid_argument(std::string("dependency ") +
+                           cam_resource->api().to_string() +
+                           " is not a camera resource\n");
             }
             auto cam = std::dynamic_pointer_cast<Camera>(cam_resource);
             if (!cam->get_properties().supports_pcd) {
-                std::ostringstream buffer;
-                buffer << "camera resource " << cam_resource->api().to_string()
-                       << " does not support get_point_cloud\n";
-                throw std::invalid_argument(buffer.str());
+                throw std::invalid_argument(std::string("camera resource ") +
+                           cam_resource->api().to_string() +
+                           " does not support get_point_cloud\n");
             }
             std::cout << "camera " << cam->name() << " registered\n";
             // TODO: Refactor to getCams helper ^^^
@@ -189,9 +187,7 @@ class JoinPointClouds : public Camera, public Reconfigurable {
     }
 
     AttributeMap do_command(const AttributeMap& command) override {
-        std::ostringstream buffer;
-        buffer << "do_command method is unsupported\n";
-        throw std::runtime_error(buffer.str());
+        throw std::runtime_error("do_command method is unsupported\n");
     }
 
     std::vector<GeometryConfig> get_geometries(const AttributeMap& extra) override {
@@ -199,15 +195,11 @@ class JoinPointClouds : public Camera, public Reconfigurable {
     }
 
     raw_image get_image(std::string mime_type, const AttributeMap& extra) override {
-        std::ostringstream buffer;
-        buffer << "get_image method is unsupported\n";
-        throw std::runtime_error(buffer.str());
+        throw std::runtime_error("get_image method is unsupported\n");
     }
 
     image_collection get_images() override {
-        std::ostringstream buffer;
-        buffer << "get_images method is unsupported\n";
-        throw std::runtime_error(buffer.str());
+        throw std::runtime_error("get_images method is unsupported\n");
     }
 
     point_cloud get_point_cloud(std::string mime_type, const AttributeMap& extra) {
@@ -259,9 +251,7 @@ class JoinPointClouds : public Camera, public Reconfigurable {
     }
 
     properties get_properties() override {
-        std::ostringstream buffer;
-        buffer << "get_properties unsupported is unsupported\n";
-        throw std::runtime_error(buffer.str());
+        throw std::runtime_error("get_properties unsupported is unsupported\n");
     }
 
    private:
@@ -277,9 +267,7 @@ class JoinPointClouds : public Camera, public Reconfigurable {
                 return transformation;
             }
         }
-        std::ostringstream buffer;
-        buffer << "could not find target frame in source cameras\n";
-        throw std::runtime_error(buffer.str());
+        throw std::runtime_error("could not find target frame in source cameras\n");
     }
 };
 
@@ -328,7 +316,7 @@ int main(int argc, char** argv) {
         camera_api,
         m,
         [](Dependencies deps, ResourceConfig cfg) {
-            return std::make_unique<JoinPointClouds>(deps, cfg);
+            return std::make_shared<JoinPointClouds>(deps, cfg);
         },
         validate);
 

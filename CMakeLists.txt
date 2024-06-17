@@ -12,13 +12,7 @@ find_package(MPI REQUIRED)
 find_package(viam-cpp-sdk REQUIRED)
 find_package(PCL 1.8 REQUIRED COMPONENTS common io)
 
-add_executable(join-point-clouds src/main.cpp src/utils.cpp ${THIRD_PARTY_SOURCES})
-
-if(MPI_FOUND)
-    target_link_libraries(join-point-clouds PUBLIC MPI::MPI_CXX)
-else()
-    message(FATAL_ERROR "MPI not found. Please install MPI and ensure FindMPI works.")
-endif()
+add_executable(join-point-clouds src/main.cpp src/utils.cpp)
 
 target_link_libraries(join-point-clouds PUBLIC viam-cpp-sdk::viamsdk ${CMAKE_DL_LIBS} ${PCL_LIBRARIES})
 
@@ -26,9 +20,6 @@ include_directories(${PCL_INCLUDE_DIRS} include)
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
-target_compile_features(join-point-clouds PUBLIC
-    cxx_std_17
-)
 target_compile_options(join-point-clouds PRIVATE
     -O2
     -Wredundant-move 
