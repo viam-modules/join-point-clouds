@@ -2,7 +2,7 @@
   "module_id": "viam:join_point_clouds",
   "visibility": "public",
   "url": "https://github.com/viam-modules/join-point-clouds",
-  "description": "Viam C++ Module to join multiple point cloud sources from one perspective",
+  "description": "Viam C++ Module to join PCDs using Point Cloud Library (PCL) from one perspective",
   "models": [
     {
       "api": "rdk:component:camera",

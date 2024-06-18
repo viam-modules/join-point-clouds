@@ -191,7 +191,7 @@ class JoinPointClouds : public Camera, public Reconfigurable {
     }
 
     std::vector<GeometryConfig> get_geometries(const AttributeMap& extra) override {
-        return std::vector<GeometryConfig>();
+        throw std::runtime_error("get_geometries method is unsupported\n");
     }
 
     raw_image get_image(std::string mime_type, const AttributeMap& extra) override {
@@ -251,7 +251,9 @@ class JoinPointClouds : public Camera, public Reconfigurable {
     }
 
     properties get_properties() override {
-        throw std::runtime_error("get_properties unsupported is unsupported\n");
+        properties response;
+        response.supports_pcd = true;
+        return response;
     }
 
    private:
