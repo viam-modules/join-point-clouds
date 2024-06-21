@@ -25,6 +25,7 @@
 #include <viam/sdk/resource/resource.hpp>
 #include <viam/sdk/rpc/dial.hpp>
 #include <viam/sdk/rpc/server.hpp>
+#include <viam/sdk/services/motion.hpp>
 
 #include "utils.h"
 
@@ -71,102 +72,41 @@ class JoinPointClouds : public Camera, public Reconfigurable {
         std::cout << "join-point-clouds " << Resource::name() << " is reconfiguring\n";
         camTransformPairs = {};  // reset to empty
 
-        std::vector<std::shared_ptr<Camera>> cams;
+        std::shared_ptr<Motion> motion;
+        std::vector<NamedCamera> namedCams;
         for (auto& dep : deps) {
-            // TODO: Refactor to getCams helper vvv
-            std::shared_ptr<Resource> cam_resource = dep.second;
-            if (cam_resource->api().to_string() != API::get<Camera>().to_string()) {
+            auto res = dep.second;
+            auto api = res->api().to_string();
+            if (api == API::get<Camera>().to_string()) {
+                // TODO: Refactor to getCams helper vvv
+                auto cam = std::dynamic_pointer_cast<Camera>(res);
+                if (!cam->get_properties().supports_pcd) {
+                    throw std::invalid_argument(std::string("camera resource ") +
+                            api +
+                            " does not support get_point_cloud\n");
+                }
+                std::cout << "camera " << cam->name() << " registered\n";
+                // TODO: Refactor to getCams helper ^^^
+                namedCams.push_back(NamedCamera{dep.first, cam});
+            } else if (api == API::get<Motion>().to_string()) {
+                std::cout << "inside conditional case for motion\n";
+                motion = std::dynamic_pointer_cast<Motion>(res);
+                std::cout << "casted motion to motion service obj\n";
+            } else {
                 throw std::invalid_argument(std::string("dependency ") +
-                           cam_resource->api().to_string() +
+                           api +
                            " is not a camera resource\n");
             }
-            auto cam = std::dynamic_pointer_cast<Camera>(cam_resource);
-            if (!cam->get_properties().supports_pcd) {
-                throw std::invalid_argument(std::string("camera resource ") +
-                           cam_resource->api().to_string() +
-                           " does not support get_point_cloud\n");
-            }
-            std::cout << "camera " << cam->name() << " registered\n";
-            // TODO: Refactor to getCams helper ^^^
-            cams.push_back(cam);
         }
-
-        std::vector<std::shared_ptr<Eigen::Matrix4f>> transformations;
-        auto attrs = cfg.attributes();
-        // TODO: Refactor to getTransformations helper vvv  input: attrs;  output: transformations / throws error
-        if (attrs->count("transforms") == 1) {
-            std::shared_ptr<ProtoType> transforms_proto = attrs->at("transforms");
-            auto transforms_value = transforms_proto->proto_value();
-
-            if (!transforms_value.has_list_value()) {
-                throw std::invalid_argument("'transforms' field must be a list");
-            }
-            auto transforms_list = transforms_value.list_value();
-
-            if (transforms_list.values().size() != cams.size()) {
-                throw std::invalid_argument(
-                    "'transforms' list must contain the same number of elements as cams");
-            }
-
-            for (const auto& transform_value : transforms_list.values()) {
-                if (!transform_value.has_list_value()) {
-                    throw std::invalid_argument("each item in 'transforms' must be a list");
-                }
-                auto transform = transform_value.list_value();
-                if (transform.values().size() != 2) {
-                    throw std::invalid_argument("each transform must consist of two lists (translation, quaternion)");
-                }
-
-                Eigen::Vector3f translation = parseTranslation(transform.values(0).list_value());
-                Eigen::Quaternionf quaternion = parseQuaternion(transform.values(1).list_value());
-
-                std::cout << "Translation: " << translation.transpose() << std::endl;
-                std::cout << "Quaternion: " << quaternion.coeffs().transpose() << std::endl;
-
-                Eigen::Matrix4f transformation = Eigen::Matrix4f::Identity();
-                transformation.block<3,3>(0,0) = quaternion.toRotationMatrix();
-                transformation.block<3,1>(0,3) = translation;
-                transformations.push_back(std::make_shared<Eigen::Matrix4f>(transformation));
-
-                std::cout << "Transformation Matrix:" << std::endl;
-                std::cout << *transformations.back() << std::endl;
-            }
-        } else if (attrs->count("transforms") > 1) {
-            throw std::invalid_argument(
-                "required 'transforms' attribute in the config was specified more than once");
-        } else {
-            for (auto& cam : cams) {
-                std::shared_ptr<Eigen::Matrix4f> identityMatrix = std::make_shared<Eigen::Matrix4f>(Eigen::Matrix4f::Identity());
-                transformations.push_back(identityMatrix);
-            }
-            std::cout << "no 'transforms' attribute specified; using world coordinates\n";
-        }
-        // TODO: Refactor to getTransformations ^^^
-
-        for (size_t i = 0; i < cams.size(); ++i) {
-            camTransformPairs.push_back(std::make_pair(cams[i], transformations[i]));
-        }
-        std::cout << "size of camTransformPairs: " << camTransformPairs.size() << std::endl;
 
         // TODO: Refactor to getTargetFrame helper vvv
+        auto attrs = cfg.attributes();
         if (attrs->count("target_frame") == 1) {
-            std::shared_ptr<ProtoType> target_frame_proto = attrs->at("target_frame");
-            auto target_frame_value = target_frame_proto->proto_value();
+            std::shared_ptr<ProtoType> targetFrameProto = attrs->at("target_frame");
+            auto targetFrameVal = targetFrameProto->proto_value();
 
-            if (target_frame_value.has_string_value()) {
-                targetFrame = target_frame_value.string_value();
-                if (targetFrame != "world") {
-                    bool isValidTargetFrame = false;
-                    for (auto cam : cams) {
-                        if (targetFrame == cam->name()) {
-                            isValidTargetFrame = true;
-                            break;
-                        }
-                    }
-                    if (!isValidTargetFrame) {
-                        throw std::invalid_argument("'target_frame' field must be a source camera component name");
-                    }
-                }
+            if (targetFrameVal.has_string_value()) {
+                targetFrame = targetFrameVal.string_value();
                 std::cout << "target frame: " << targetFrame << std::endl;
             } else {
                 throw std::invalid_argument("'target_frame' field must be a string");
@@ -179,6 +119,38 @@ class JoinPointClouds : public Camera, public Reconfigurable {
                 "could not find required 'target_frame' attribute in the config");
         }
         // TODO: Refactor to getTargetFrame helper ^^^
+
+        for (auto namedCam : namedCams) {
+            auto name = namedCam.first;
+            auto cam = namedCam.second;
+            std::vector<WorldState::transform> supplementalTransforms;
+            pose_in_frame poseInFrame = motion->get_pose(name, targetFrame, supplementalTransforms);
+            pose thePose = poseInFrame.pose;
+            coordinates coords = thePose.coordinates;
+            pose_orientation ori = thePose.orientation;
+            std::cout << "Coordinates:" << std::endl;
+            std::cout << "  x: " << coords.x << std::endl;
+            std::cout << "  y: " << coords.y << std::endl;
+            std::cout << "  z: " << coords.z << std::endl;
+
+            std::cout << "Orientation:" << std::endl;
+            std::cout << "  o_x: " << ori.o_x << std::endl;
+            std::cout << "  o_y: " << ori.o_y << std::endl;
+            std::cout << "  o_z: " << ori.o_z << std::endl;
+
+            Eigen::Quaterniond quaternion = Eigen::AngleAxisd(ori.o_z, Eigen::Vector3d::UnitZ())
+                                            * Eigen::AngleAxisd(ori.o_y, Eigen::Vector3d::UnitY())
+                                            * Eigen::AngleAxisd(ori.o_x, Eigen::Vector3d::UnitX());
+
+            Eigen::Matrix3d rotationMatrix = quaternion.toRotationMatrix();
+
+            Eigen::Vector3d translationVector(coords.x, coords.y, coords.z);
+            Eigen::Matrix4d transform = Eigen::Matrix4d::Identity();
+            transform.block<3,3>(0,0) = rotationMatrix;
+            transform.block<3,1>(0,3) = translationVector;
+
+            camTransformPairs.push_back(std::make_pair(cam, std::make_shared<Eigen::Matrix4f>(transform.cast<float>())));
+        }
     }
 
     JoinPointClouds(Dependencies deps, ResourceConfig cfg) : Camera(cfg.name()) {
@@ -214,7 +186,6 @@ class JoinPointClouds : public Camera, public Reconfigurable {
             std::cout << ".size() of response.pc: " << response.pc.size() << std::endl;
             RawPCD rawPCD = parseRawPCD(response.pc);
             rawPCDs.push_back(rawPCD);
-            std::cout << rawPCD << std::endl;
 
             auto pcd = convertToPointCloud(rawPCD);
             clouds.push_back(pcd);
@@ -225,21 +196,9 @@ class JoinPointClouds : public Camera, public Reconfigurable {
             pcl::PointCloud<pcl::PointXYZ>::Ptr cloud = clouds[i];
             std::shared_ptr<Eigen::Matrix4f> transformation = camTransformPairs[i].second;
 
-            Eigen::Matrix4f inverseTransformation = transformation->inverse();
             pcl::PointCloud<pcl::PointXYZ>::Ptr worldCloud(new pcl::PointCloud<pcl::PointXYZ>());
-            pcl::transformPointCloud(*cloud, *worldCloud, inverseTransformation);
+            pcl::transformPointCloud(*cloud, *worldCloud, *transformation);
             clouds[i] = worldCloud;
-        }
-
-        if (targetFrame != "world") {
-            std::shared_ptr<Eigen::Matrix4f> transformation = getTargetFrameTransformation();
-            for (int i = 0; i < clouds.size(); ++i) {
-                std::shared_ptr<Camera> cam = camTransformPairs[i].first;
-                pcl::PointCloud<pcl::PointXYZ>::Ptr worldCloud = clouds[i];
-                pcl::PointCloud<pcl::PointXYZ>::Ptr targetCloud(new pcl::PointCloud<pcl::PointXYZ>());
-                pcl::transformPointCloud(*worldCloud, *targetCloud, *transformation);
-                clouds[i] = targetCloud;
-            }
         }
 
         combinedCloud = combinePointClouds(clouds);
@@ -257,20 +216,10 @@ class JoinPointClouds : public Camera, public Reconfigurable {
     }
 
    private:
+    using NamedCamera = std::pair<Name, std::shared_ptr<Camera>>;
     using CameraTransformationPair = std::pair<std::shared_ptr<Camera>, std::shared_ptr<Eigen::Matrix4f>>;
     std::vector<CameraTransformationPair> camTransformPairs;
     std::string targetFrame;
-
-    std::shared_ptr<Eigen::Matrix4f> getTargetFrameTransformation() {
-        for (auto pair : camTransformPairs) {
-            auto& cam = pair.first;
-            auto& transformation = pair.second;
-            if (cam->name() == targetFrame) {
-                return transformation;
-            }
-        }
-        throw std::runtime_error("could not find target frame in source cameras\n");
-    }
 };
 
 std::vector<std::string> validate(ResourceConfig cfg) {
@@ -307,6 +256,7 @@ std::vector<std::string> validate(ResourceConfig cfg) {
             "could not find required 'source_cameras' attribute in the config");
     }
 
+    deps.push_back("rdk:service:motion/builtin");
     return deps;
 }
 
