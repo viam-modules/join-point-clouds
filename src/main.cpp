@@ -120,12 +120,24 @@ class JoinPointClouds : public Camera, public Reconfigurable {
 
         for (auto namedCam : namedCams) {
             auto name = namedCam.first;
+            std::cout << "Cam name: " << name << std::endl;
             auto cam = namedCam.second;
             std::vector<WorldState::transform> supplementalTransforms;
             pose_in_frame poseInFrame = motion->get_pose(name, targetFrame, supplementalTransforms);
             double thetaRadians = poseInFrame.pose.theta * M_PI / 180.0;
             coordinates coords = poseInFrame.pose.coordinates;
             pose_orientation ori = poseInFrame.pose.orientation;
+            std::cout << "Theta (degrees): " << poseInFrame.pose.theta << std::endl;
+            std::cout << "Theta (radians): " << thetaRadians << std::endl;
+            std::cout << "Coordinates:" << std::endl;
+            std::cout << "  x: " << coords.x << std::endl;
+            std::cout << "  y: " << coords.y << std::endl;
+            std::cout << "  z: " << coords.z << std::endl;
+
+            std::cout << "Orientation:" << std::endl;
+            std::cout << "  o_x: " << ori.o_x << std::endl;
+            std::cout << "  o_y: " << ori.o_y << std::endl;
+            std::cout << "  o_z: " << ori.o_z << std::endl;
 
             // Compute 3x3 rotation matrix from orientation vector
             Eigen::Vector3d direction(ori.o_x, ori.o_y, ori.o_z);
@@ -177,9 +189,11 @@ class JoinPointClouds : public Camera, public Reconfigurable {
             std::shared_ptr<Eigen::Matrix4f> transformation = camTransformPair.second;
             pcl::transformPointCloud(*cloud, *cloud, *transformation);
             clouds.push_back(cloud);
+            std::cout << "Transformed cloud has " << cloud->points.size() << " points." << std::endl;
         }
 
         pcl::PointCloud<pcl::PointXYZ> combinedCloud = combinePointClouds(clouds);
+        std::cout << "Combined cloud has " << combinedCloud.size() << " points." << std::endl;
         std::vector<unsigned char> response = pclCloudToPCDBytes(combinedCloud);
         return point_cloud{mime_type, response};
     }
