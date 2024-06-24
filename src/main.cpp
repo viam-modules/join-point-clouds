@@ -89,9 +89,7 @@ class JoinPointClouds : public Camera, public Reconfigurable {
                 // TODO: Refactor to getCams helper ^^^
                 namedCams.push_back(NamedCamera{dep.first, cam});
             } else if (api == API::get<Motion>().to_string()) {
-                std::cout << "inside conditional case for motion\n";
                 motion = std::dynamic_pointer_cast<Motion>(res);
-                std::cout << "casted motion to motion service obj\n";
             } else {
                 throw std::invalid_argument(std::string("dependency ") +
                            api +
@@ -125,29 +123,23 @@ class JoinPointClouds : public Camera, public Reconfigurable {
             auto cam = namedCam.second;
             std::vector<WorldState::transform> supplementalTransforms;
             pose_in_frame poseInFrame = motion->get_pose(name, targetFrame, supplementalTransforms);
-            pose thePose = poseInFrame.pose;
-            coordinates coords = thePose.coordinates;
-            pose_orientation ori = thePose.orientation;
-            std::cout << "Coordinates:" << std::endl;
-            std::cout << "  x: " << coords.x << std::endl;
-            std::cout << "  y: " << coords.y << std::endl;
-            std::cout << "  z: " << coords.z << std::endl;
+            double thetaRadians = poseInFrame.pose.theta * M_PI / 180.0;
+            coordinates coords = poseInFrame.pose.coordinates;
+            pose_orientation ori = poseInFrame.pose.orientation;
 
-            std::cout << "Orientation:" << std::endl;
-            std::cout << "  o_x: " << ori.o_x << std::endl;
-            std::cout << "  o_y: " << ori.o_y << std::endl;
-            std::cout << "  o_z: " << ori.o_z << std::endl;
+            // Compute 3x3 rotation matrix from orientation vector
+            Eigen::Vector3d direction(ori.o_x, ori.o_y, ori.o_z);
+            direction.normalize();
+            Eigen::AngleAxisd angleAxis(thetaRadians, direction);
+            Eigen::Matrix3d rotationMatrix = angleAxis.toRotationMatrix();
 
-            Eigen::Quaterniond quaternion = Eigen::AngleAxisd(ori.o_z, Eigen::Vector3d::UnitZ())
-                                            * Eigen::AngleAxisd(ori.o_y, Eigen::Vector3d::UnitY())
-                                            * Eigen::AngleAxisd(ori.o_x, Eigen::Vector3d::UnitX());
+            // Initialize 3x1 translation vector
+            Eigen::Vector3d translation(coords.x, coords.y, coords.z);
 
-            Eigen::Matrix3d rotationMatrix = quaternion.toRotationMatrix();
-
-            Eigen::Vector3d translationVector(coords.x, coords.y, coords.z);
+            // Initialize 4x4 homogeneous transformation from current cam to target frame
             Eigen::Matrix4d transform = Eigen::Matrix4d::Identity();
-            transform.block<3,3>(0,0) = rotationMatrix;
-            transform.block<3,1>(0,3) = translationVector;
+            transform.block<3, 3>(0, 0) = rotationMatrix;
+            transform.block<3, 1>(0, 3) = translation;
 
             camTransformPairs.push_back(std::make_pair(cam, std::make_shared<Eigen::Matrix4f>(transform.cast<float>())));
         }
@@ -175,38 +167,21 @@ class JoinPointClouds : public Camera, public Reconfigurable {
     }
 
     point_cloud get_point_cloud(std::string mime_type, const AttributeMap& extra) {
-        std::cout << "in 'get_point_cloud'" << std::endl;
-
-        std::vector<RawPCD> rawPCDs;
         std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> clouds;
-        pcl::PointCloud<pcl::PointXYZ> combinedCloud;
         for (auto camTransformPair : camTransformPairs) {
             auto cam = camTransformPair.first;
             auto response = cam->get_point_cloud("pointcloud/pcd");
-            std::cout << ".size() of response.pc: " << response.pc.size() << std::endl;
             RawPCD rawPCD = parseRawPCD(response.pc);
-            rawPCDs.push_back(rawPCD);
 
-            auto pcd = convertToPointCloud(rawPCD);
-            clouds.push_back(pcd);
-            std::cout << "Cloud has " << pcd->points.size() << " points." << std::endl;
+            auto cloud = convertToPointCloud(rawPCD);
+            std::shared_ptr<Eigen::Matrix4f> transformation = camTransformPair.second;
+            pcl::transformPointCloud(*cloud, *cloud, *transformation);
+            clouds.push_back(cloud);
         }
 
-        for (int i = 0; i < clouds.size(); ++i) {
-            pcl::PointCloud<pcl::PointXYZ>::Ptr cloud = clouds[i];
-            std::shared_ptr<Eigen::Matrix4f> transformation = camTransformPairs[i].second;
-
-            pcl::PointCloud<pcl::PointXYZ>::Ptr worldCloud(new pcl::PointCloud<pcl::PointXYZ>());
-            pcl::transformPointCloud(*cloud, *worldCloud, *transformation);
-            clouds[i] = worldCloud;
-        }
-
-        combinedCloud = combinePointClouds(clouds);
-
-        std::cout << "Combined cloud has " << combinedCloud.size() << " points." << std::endl;
-        std::vector<unsigned char> pcd_bytes = pclCloudToPCDBytes(combinedCloud);
-
-        return point_cloud{mime_type, pcd_bytes};
+        pcl::PointCloud<pcl::PointXYZ> combinedCloud = combinePointClouds(clouds);
+        std::vector<unsigned char> response = pclCloudToPCDBytes(combinedCloud);
+        return point_cloud{mime_type, response};
     }
 
     properties get_properties() override {
