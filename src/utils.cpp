@@ -1,5 +1,29 @@
 #include "utils.h"
 
+ViamOrientationVector::ViamOrientationVector(float ox, float oy, float oz, float theta)
+    : vec(ox, oy, oz), th(theta) {
+    vec.normalize();
+}
+
+Eigen::Quaternionf ViamOrientationVector::toQuaternion() const {
+    float lat = std::acos(vec.z());
+    float lon = std::fabs(vec.z()) < 1 ? std::atan2(vec.y(), vec.x()) : 0;
+
+    float s0 = std::sin(lon / 2);
+    float c0 = std::cos(lon / 2);
+    float s1 = std::sin(lat / 2);
+    float c1 = std::cos(lat / 2);
+    float s2 = std::sin(th / 2);
+    float c2 = std::cos(th / 2);
+
+    Eigen::Quaternionf q;
+    q.coeffs() << c0 * s1 * s2 - s0 * s1 * c2,   // x
+                  c0 * s1 * c2 + s0 * s1 * s2,   // y
+                  s0 * c1 * c2 + c0 * c1 * s2,   // z
+                  c0 * c1 * c2 - s0 * c1 * s2;   // w
+    return q;
+}
+
 std::vector<unsigned char> pointToBinary(const pcl::PointXYZ& point) {
     std::vector<unsigned char> bytes;
     bytes.resize(sizeof(point.x) * 3); // Each point has three float coordinates
@@ -109,4 +133,12 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr convertToPointCloud(const RawPCD& rawPCD) {
     }
 
     return cloud;
+}
+
+pcl::PointCloud<pcl::PointXYZ> combinePointClouds(const std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr>& clouds) {
+    pcl::PointCloud<pcl::PointXYZ> combinedCloud;
+    for (const auto& pcd : clouds) {
+        combinedCloud += *pcd;
+    }
+    return combinedCloud;
 }

@@ -1,13 +1,27 @@
 #pragma once
-#include <pcl/point_cloud.h>
-#include <pcl/point_types.h>
 
+#include <cmath>
 #include <iostream>
 #include <iomanip>
 #include <sstream>
 #include <string>
 #include <vector>
 #include <cstring>
+
+#include <Eigen/Dense>
+
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+
+class ViamOrientationVector {
+public:
+    Eigen::Vector3f vec;  // Vector representing the spherical axis of rotation
+    float th;  // Theta. The rotation angle in radians
+
+    ViamOrientationVector(float ox = 0, float oy = 0, float oz = 1, float theta = 0);
+
+    Eigen::Quaternionf toQuaternion() const;
+};
 
 struct RawPCD {
     std::vector<std::string> fields;
@@ -30,5 +44,5 @@ std::vector<unsigned char> pclCloudToPCDBytes(const pcl::PointCloud<pcl::PointXY
 RawPCD parseRawPCD(const std::vector<unsigned char>& input);
 // Converts RawPCD struct to pcl::PointCloud
 pcl::PointCloud<pcl::PointXYZ>::Ptr convertToPointCloud(const RawPCD& rawPCD);
-// Override stream operator for RawPCD better debug printing
-std::ostream& operator<<(std::ostream& os, const RawPCD& pcd);
+// Concatenates a vector of PCL clouds into one cloud
+pcl::PointCloud<pcl::PointXYZ> combinePointClouds(const std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr>& clouds);

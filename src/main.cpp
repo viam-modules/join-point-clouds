@@ -31,41 +31,6 @@
 
 using namespace viam::sdk;
 
-Eigen::Vector3f parseTranslation(const google::protobuf::ListValue& list_value) {
-    if (list_value.values_size() != 3) {
-        throw std::invalid_argument("translation must have exactly 3 elements.");
-    }
-    Eigen::Vector3f translation;
-    for (int i = 0; i < 3; ++i) {
-        if (!list_value.values(i).has_number_value()) {
-            throw std::invalid_argument("all elements of translation must be numeric.");
-        }
-        translation(i) = list_value.values(i).number_value();
-    }
-    return translation;
-}
-
-Eigen::Quaternionf parseQuaternion(const google::protobuf::ListValue& list_value) {
-    if (list_value.values_size() != 4) {
-        throw std::invalid_argument("quaternion must have exactly 4 elements.");
-    }
-    Eigen::Quaternionf quaternion(
-        list_value.values(3).number_value(), // w
-        list_value.values(0).number_value(), // x
-        list_value.values(1).number_value(), // y
-        list_value.values(2).number_value()  // z
-    );
-    return quaternion;
-}
-
-pcl::PointCloud<pcl::PointXYZ> combinePointClouds(const std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr>& clouds) {
-    pcl::PointCloud<pcl::PointXYZ> combinedCloud;
-    for (const auto& pcd : clouds) {
-        combinedCloud += *pcd;
-    }
-    return combinedCloud;
-}
-
 class JoinPointClouds : public Camera, public Reconfigurable {
    public:
     void reconfigure(const Dependencies& deps, const ResourceConfig& cfg) override {
@@ -139,21 +104,20 @@ class JoinPointClouds : public Camera, public Reconfigurable {
             std::cout << "  o_y: " << ori.o_y << std::endl;
             std::cout << "  o_z: " << ori.o_z << std::endl;
 
-            // Compute 3x3 rotation matrix from orientation vector
-            Eigen::Vector3d direction(ori.o_x, ori.o_y, ori.o_z);
-            direction.normalize();
-            Eigen::AngleAxisd angleAxis(thetaRadians, direction);
-            Eigen::Matrix3d rotationMatrix = angleAxis.toRotationMatrix();
+            // Compute 3x3 rotation matrix
+            ViamOrientationVector orientationVec(ori.o_x, ori.o_y, ori.o_z, thetaRadians);
+            Eigen::Quaternionf quaternion = orientationVec.toQuaternion();
+            Eigen::Matrix3f rotationMatrix = quaternion.toRotationMatrix();
 
             // Initialize 3x1 translation vector
-            Eigen::Vector3d translation(coords.x, coords.y, coords.z);
+            Eigen::Vector3f translation(coords.x, coords.y, coords.z);
 
             // Initialize 4x4 homogeneous transformation from current cam to target frame
-            Eigen::Matrix4d transform = Eigen::Matrix4d::Identity();
+            Eigen::Matrix4f transform = Eigen::Matrix4f::Identity();
             transform.block<3, 3>(0, 0) = rotationMatrix;
             transform.block<3, 1>(0, 3) = translation;
 
-            camTransformPairs.push_back(std::make_pair(cam, std::make_shared<Eigen::Matrix4f>(transform.cast<float>())));
+            camTransformPairs.push_back(std::make_pair(cam, std::make_shared<Eigen::Matrix4f>(transform)));
         }
     }
 
