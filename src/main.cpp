@@ -37,13 +37,13 @@ class JoinPointClouds : public Camera, public Reconfigurable {
         std::cout << "join-point-clouds " << Resource::name() << " is reconfiguring\n";
         camTransformPairs = {};  // reset to empty
 
-        std::shared_ptr<Motion> motion;
+        // Set up cameras along with their resource name as well as the motion service from deps
         std::vector<NamedCamera> namedCams;
+        std::shared_ptr<Motion> motion;
         for (auto& dep : deps) {
             auto res = dep.second;
             auto api = res->api().to_string();
             if (api == API::get<Camera>().to_string()) {
-                // TODO: Refactor to getCams helper vvv
                 auto cam = std::dynamic_pointer_cast<Camera>(res);
                 if (!cam->get_properties().supports_pcd) {
                     throw std::invalid_argument(std::string("camera resource ") +
@@ -51,7 +51,6 @@ class JoinPointClouds : public Camera, public Reconfigurable {
                             " does not support get_point_cloud\n");
                 }
                 std::cout << "camera " << cam->name() << " registered\n";
-                // TODO: Refactor to getCams helper ^^^
                 namedCams.push_back(NamedCamera{dep.first, cam});
             } else if (api == API::get<Motion>().to_string()) {
                 motion = std::dynamic_pointer_cast<Motion>(res);
@@ -62,7 +61,7 @@ class JoinPointClouds : public Camera, public Reconfigurable {
             }
         }
 
-        // TODO: Refactor to getTargetFrame helper vvv
+        // Process the target frame's name
         auto attrs = cfg.attributes();
         if (attrs->count("target_frame") == 1) {
             std::shared_ptr<ProtoType> targetFrameProto = attrs->at("target_frame");
@@ -81,8 +80,8 @@ class JoinPointClouds : public Camera, public Reconfigurable {
             throw std::invalid_argument(
                 "could not find required 'target_frame' attribute in the config");
         }
-        // TODO: Refactor to getTargetFrame helper ^^^
 
+        // Process each cam's respective transformation to target frame
         for (auto namedCam : namedCams) {
             auto name = namedCam.first;
             std::cout << "Cam name: " << name << std::endl;
