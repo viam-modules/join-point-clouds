@@ -1,37 +1,29 @@
 #include "utils.h"
 
-// Override stream operator for RawPCD better debug printing
-std::ostream& operator<<(std::ostream& os, const RawPCD& pcd) {
-    os << "RawPCD:" << std::endl;
-    os << "  Fields: ";
-    for (const auto& field : pcd.fields) {
-        os << field << " ";
-    }
-    os << "\n  Sizes: ";
-    for (const auto& size : pcd.sizes) {
-        os << size << " ";
-    }
-    os << "\n  Types: ";
-    for (const auto& type : pcd.types) {
-        os << type << " ";
-    }
-    os << "\n  Counts: ";
-    for (const auto& count : pcd.counts) {
-        os << count << " ";
-    }
-    os << "\n  Viewpoint: ";
-    for (const auto& num : pcd.viewpoint) {
-        os << num << " ";
-    }
-    os << "\n  Width: " << pcd.width;
-    os << "\n  Height: " << pcd.height;
-    os << "\n  Points: " << pcd.points;
-    os << "\n  Data Type: " << pcd.dataType;
-    os << "\n  Raw Data Size: " << pcd.rawData.size() << " bytes";
-    return os;
-};
+ViamOrientationVector::ViamOrientationVector(float ox, float oy, float oz, float theta)
+    : vec(ox, oy, oz), th(theta) {
+    vec.normalize();
+}
 
-// Helper function to convert a single pcl::PointXYZ to binary
+Eigen::Quaternionf ViamOrientationVector::toQuaternion() const {
+    float lat = std::acos(vec.z());
+    float lon = std::fabs(vec.z()) < 1 ? std::atan2(vec.y(), vec.x()) : 0;
+
+    float s0 = std::sin(lon / 2);
+    float c0 = std::cos(lon / 2);
+    float s1 = std::sin(lat / 2);
+    float c1 = std::cos(lat / 2);
+    float s2 = std::sin(th / 2);
+    float c2 = std::cos(th / 2);
+
+    Eigen::Quaternionf q;
+    q.coeffs() << c0 * s1 * s2 - s0 * s1 * c2,   // x
+                  c0 * s1 * c2 + s0 * s1 * s2,   // y
+                  s0 * c1 * c2 + c0 * c1 * s2,   // z
+                  c0 * c1 * c2 - s0 * c1 * s2;   // w
+    return q;
+}
+
 std::vector<unsigned char> pointToBinary(const pcl::PointXYZ& point) {
     std::vector<unsigned char> bytes;
     bytes.resize(sizeof(point.x) * 3); // Each point has three float coordinates
@@ -41,7 +33,6 @@ std::vector<unsigned char> pointToBinary(const pcl::PointXYZ& point) {
     return bytes;
 }
 
-// Converts PCL point cloud data to raw PCD payload in binary format
 std::vector<unsigned char> pclCloudToPCDBytes(const pcl::PointCloud<pcl::PointXYZ>& pc) {
     std::stringstream header;
     header << "VERSION .7\n";
@@ -67,7 +58,6 @@ std::vector<unsigned char> pclCloudToPCDBytes(const pcl::PointCloud<pcl::PointXY
     return pcd_bytes;
 }
 
-// Helper that converts raw Viam PCD data into structured data
 RawPCD parseRawPCD(const std::vector<unsigned char>& input) {
     std::string content(input.begin(), input.end());
     std::istringstream stream(content);
@@ -126,7 +116,6 @@ RawPCD parseRawPCD(const std::vector<unsigned char>& input) {
     return pcd;
 }
 
-// Converts RawPCD struct to pcl::PointCloud
 pcl::PointCloud<pcl::PointXYZ>::Ptr convertToPointCloud(const RawPCD& rawPCD) {
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
 
@@ -144,4 +133,12 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr convertToPointCloud(const RawPCD& rawPCD) {
     }
 
     return cloud;
+}
+
+pcl::PointCloud<pcl::PointXYZ> combinePointClouds(const std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr>& clouds) {
+    pcl::PointCloud<pcl::PointXYZ> combinedCloud;
+    for (const auto& pcd : clouds) {
+        combinedCloud += *pcd;
+    }
+    return combinedCloud;
 }
