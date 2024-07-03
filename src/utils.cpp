@@ -34,6 +34,12 @@ std::vector<unsigned char> pointToBinary(const pcl::PointXYZ& point) {
 }
 
 std::vector<unsigned char> pclCloudToPCDBytes(const pcl::PointCloud<pcl::PointXYZ>& pc) {
+    std::vector<unsigned char> pointData;
+    for (const auto& point : pc.points) {
+        auto binaryPoint = pointToBinary(point);
+        pointData.insert(pointData.end(), binaryPoint.begin(), binaryPoint.end());
+    }
+
     std::stringstream header;
     header << "VERSION .7\n";
     header << "FIELDS x y z\n";
@@ -45,17 +51,49 @@ std::vector<unsigned char> pclCloudToPCDBytes(const pcl::PointCloud<pcl::PointXY
     header << "VIEWPOINT 0 0 0 1 0 0 0\n";
     header << "POINTS " << pc.points.size() << "\n";
     header << "DATA binary\n";
+    std::string headerStr = header.str();
 
-    std::vector<unsigned char> pcd_bytes;
-    std::string header_str = header.str();
-    pcd_bytes.insert(pcd_bytes.end(), header_str.begin(), header_str.end());
+    // Post-process subsampling if the data size exceeds 4MB (gRPC message size limit)
+    // TODO RSDK-7976: Remove subsampling logic after new C++ max gRPC msg size fix is in
+    const size_t maxBytes = 4194304;
+    const size_t bufferBytes = 64; // Small buffer to ensure we stay within the limit
+    const size_t maxDataBytes = maxBytes - headerStr.size() - bufferBytes;
+    const size_t pointSize = 3 * sizeof(float); // Each point is 3 floats (x, y, z)
+    if (pointData.size() > maxDataBytes) {
+        size_t maxPoints = maxDataBytes / pointSize;
+        size_t totalPoints = pointData.size() / pointSize;
+        size_t subsampleRatio = totalPoints / maxPoints;
 
-    for (const auto& point : pc.points) {
-        auto binary_point = pointToBinary(point);
-        pcd_bytes.insert(pcd_bytes.end(), binary_point.begin(), binary_point.end());
+        std::vector<unsigned char> subsampledData;
+        for (size_t i = 0; i < totalPoints; i += subsampleRatio) {
+            if (subsampledData.size() + pointSize > maxDataBytes) break;
+            subsampledData.insert(subsampledData.end(), pointData.begin() + i * pointSize, pointData.begin() + (i + 1) * pointSize);
+        }
+        std::cout << "Subsampling points: original byte size = " << pointData.size()
+                  << ", subsampled byte size = " << subsampledData.size()
+                  << ", subsample ratio = " << subsampleRatio << std::endl;
+        pointData = std::move(subsampledData);
+
+        // Update the header with the new point count
+        header.str(""); // Clear the existing header
+        header << "VERSION .7\n";
+        header << "FIELDS x y z\n";
+        header << "SIZE 4 4 4\n";
+        header << "TYPE F F F\n";
+        header << "COUNT 1 1 1\n";
+        header << "WIDTH " << pointData.size() / pointSize << "\n"; // Adjust width based on actual points
+        header << "HEIGHT 1\n";
+        header << "VIEWPOINT 0 0 0 1 0 0 0\n";
+        header << "POINTS " << pointData.size() / pointSize << "\n"; // Adjust points count
+        header << "DATA binary\n";
+        headerStr = header.str();
     }
 
-    return pcd_bytes;
+    std::vector<unsigned char> result;
+    result.insert(result.end(), headerStr.begin(), headerStr.end());
+    result.insert(result.end(), pointData.begin(), pointData.end());
+
+    return result;
 }
 
 RawPCD parseRawPCD(const std::vector<unsigned char>& input) {
@@ -100,9 +138,9 @@ RawPCD parseRawPCD(const std::vector<unsigned char>& input) {
             lineStream >> pcd.points;
             std::cout << "Parsed POINTS: " << pcd.points << std::endl;
         } else if (tag == "VIEWPOINT") {
-            int viewpoint_data;
-            while (lineStream >> viewpoint_data) {
-                pcd.viewpoint.push_back(viewpoint_data);
+            int viewpointData;
+            while (lineStream >> viewpointData) {
+                pcd.viewpoint.push_back(viewpointData);
             }
         } else if (tag == "DATA") {
             pcd.dataType = line.substr(5);
@@ -133,6 +171,31 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr convertToPointCloud(const RawPCD& rawPCD) {
     }
 
     return cloud;
+}
+
+pcl::PointCloud<pcl::PointXYZ>::Ptr alignPointCloudsUsingICP(
+    pcl::PointCloud<pcl::PointXYZ>::Ptr source,
+    pcl::PointCloud<pcl::PointXYZ>::Ptr target,
+    int proximityThreshold) {
+    
+    pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
+    icp.setInputSource(source);
+    icp.setInputTarget(target);
+    icp.setMaxCorrespondenceDistance(proximityThreshold);
+    icp.setMaximumIterations(100);
+    icp.setTransformationEpsilon(1e-10);
+    icp.setEuclideanFitnessEpsilon(1e-10);
+
+    pcl::PointCloud<pcl::PointXYZ>::Ptr aligned(new pcl::PointCloud<pcl::PointXYZ>());
+    icp.align(*aligned);
+    if (icp.hasConverged()) {
+        std::cout << "ICP converged." << std::endl
+                  << "The score is " << icp.getFitnessScore() << std::endl;
+        return aligned;
+    } else {
+        std::cerr << "ICP did not converge. Will use original, naive processed cloud." << std::endl;
+        return source;
+    }
 }
 
 pcl::PointCloud<pcl::PointXYZ> combinePointClouds(const std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr>& clouds) {
