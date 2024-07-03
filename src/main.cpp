@@ -204,10 +204,7 @@ class JoinPointClouds : public Camera, public Reconfigurable {
             std::cout << "Processed cloud from camera " << cam->name() << " has " << cloud->points.size() << " points." << std::endl;
         }
 
-        pcl::PointCloud<pcl::PointXYZ> combinedCloud;
-        for (auto& cloud : clouds) {
-            combinedCloud += *cloud;
-        }
+        pcl::PointCloud<pcl::PointXYZ> combinedCloud = combinePointClouds(clouds);
         std::cout << "Combined cloud has " << combinedCloud.size() << " points." << std::endl;
 
         std::vector<unsigned char> response = pclCloudToPCDBytes(combinedCloud);

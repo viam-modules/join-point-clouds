@@ -73,6 +73,9 @@ std::vector<unsigned char> pclCloudToPCDBytes(const pcl::PointCloud<pcl::PointXY
                   << ", subsampled byte size = " << subsampledData.size()
                   << ", subsample ratio = " << subsampleRatio << std::endl;
         pointData = std::move(subsampledData);
+        if (pointData.size() % pointSize != 0) {
+            throw std::runtime_error("Point data size is not cleanly divisible by point size. Data may be corrupted.");
+        }
 
         // Update the header with the new point count
         header.str(""); // Clear the existing header
@@ -177,14 +180,15 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr alignPointCloudsUsingICP(
     pcl::PointCloud<pcl::PointXYZ>::Ptr source,
     pcl::PointCloud<pcl::PointXYZ>::Ptr target,
     int proximityThreshold) {
-    
+    // We do not want a possible failed ICP to alter the original copy of the data
+    pcl::PointCloud<pcl::PointXYZ>::Ptr sourceCopy(new pcl::PointCloud<pcl::PointXYZ>(*source));
+    pcl::PointCloud<pcl::PointXYZ>::Ptr targetCopy(new pcl::PointCloud<pcl::PointXYZ>(*target));
+
     pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
-    icp.setInputSource(source);
-    icp.setInputTarget(target);
+    icp.setInputSource(sourceCopy);
+    icp.setInputTarget(targetCopy);
     icp.setMaxCorrespondenceDistance(proximityThreshold);
-    icp.setMaximumIterations(100);
-    icp.setTransformationEpsilon(1e-10);
-    icp.setEuclideanFitnessEpsilon(1e-10);
+    icp.setMaximumIterations(100);  // request will time out if not set
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr aligned(new pcl::PointCloud<pcl::PointXYZ>());
     icp.align(*aligned);
