@@ -88,20 +88,20 @@ class JoinPointClouds : public Camera, public Reconfigurable {
 
             if (mergeMethodVal.has_string_value()) {
                 auto mergeMethod = mergeMethodVal.string_value();
-                std::cout << "inputted merge method: " << mergeMethod << std::endl;
+                std::cout << "Inputted merge method: " << mergeMethod << std::endl;
                 if (mergeMethod == "icp") {
                     usingICP = true;
                 } else if (mergeMethod == "naive") {
                     usingICP = false;
                 } else {
-                    throw std::invalid_argument("'merge_method' field must either be 'naive' or 'icp'");
+                    throw std::invalid_argument("Invalid 'merge_method': '" + mergeMethod + "'. Must be either 'naive' or 'icp'.");
                 }
             } else {
                 throw std::invalid_argument("'merge_method' field must be a string");
             }
         } else {
             std::cout << "'merge_method' not specified; defaulting to 'naive'\n";
-            usingICP = false;
+            usingICP = false; // Default to naive
         }
 
         // Process proximity threshold
