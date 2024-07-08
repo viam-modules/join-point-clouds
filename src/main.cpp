@@ -81,6 +81,45 @@ class JoinPointClouds : public Camera, public Reconfigurable {
                 "could not find required 'target_frame' attribute in the config");
         }
 
+        // Process the merge method
+        if (attrs->count("merge_method") == 1) {
+            std::shared_ptr<ProtoType> mergeMethodProto = attrs->at("merge_method");
+            auto mergeMethodVal = mergeMethodProto->proto_value();
+
+            if (mergeMethodVal.has_string_value()) {
+                auto mergeMethod = mergeMethodVal.string_value();
+                std::cout << "Inputted merge method: " << mergeMethod << std::endl;
+                if (mergeMethod == "icp") {
+                    usingICP = true;
+                } else if (mergeMethod == "naive") {
+                    usingICP = false;
+                } else {
+                    throw std::invalid_argument("Invalid 'merge_method': '" + mergeMethod + "'. Must be either 'naive' or 'icp'.");
+                }
+            } else {
+                throw std::invalid_argument("'merge_method' field must be a string");
+            }
+        } else {
+            std::cout << "'merge_method' not specified; defaulting to 'naive'\n";
+            usingICP = false; // Default to naive
+        }
+
+        // Process proximity threshold
+        if (attrs->count("proximity_threshold_mm") == 1) {
+            std::shared_ptr<ProtoType> proximityThresholdProto = attrs->at("proximity_threshold_mm");
+            auto proximityThresholdVal = proximityThresholdProto->proto_value();
+
+            if (proximityThresholdVal.has_number_value()) {
+                proximityThreshold = proximityThresholdVal.number_value();
+                std::cout << "proximity threshold: " << proximityThreshold << std::endl;
+            } else {
+                throw std::invalid_argument("'proximity_threshold_mm' field must be an int");
+            }
+        } else {
+            std::cout << "'proximity_threshold_mm' not specified; defaulting to 0.05\n";
+            proximityThreshold = 0.05;
+        }
+
         // Process each cam's respective transformation to target frame
         for (auto namedCam : namedCams) {
             auto name = namedCam.first;
@@ -143,20 +182,31 @@ class JoinPointClouds : public Camera, public Reconfigurable {
 
     point_cloud get_point_cloud(std::string mime_type, const AttributeMap& extra) {
         std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> clouds;
+        pcl::PointCloud<pcl::PointXYZ>::Ptr referenceCloud(new pcl::PointCloud<pcl::PointXYZ>());
+        bool isFirstCloud = true;
         for (auto camTransformPair : camTransformPairs) {
             auto cam = camTransformPair.first;
             auto response = cam->get_point_cloud("pointcloud/pcd");
             RawPCD rawPCD = parseRawPCD(response.pc);
-
             auto cloud = convertToPointCloud(rawPCD);
             std::shared_ptr<Eigen::Matrix4f> transformation = camTransformPair.second;
             pcl::transformPointCloud(*cloud, *cloud, *transformation);
+            if (usingICP) {
+                if (isFirstCloud) {
+                    referenceCloud = cloud;
+                    clouds.push_back(cloud);
+                    isFirstCloud = false;
+                } else {
+                    cloud = alignPointCloudsUsingICP(cloud, referenceCloud, proximityThreshold);
+                }
+            }
             clouds.push_back(cloud);
-            std::cout << "Transformed cloud has " << cloud->points.size() << " points." << std::endl;
+            std::cout << "Processed cloud from camera " << cam->name() << " has " << cloud->points.size() << " points." << std::endl;
         }
 
         pcl::PointCloud<pcl::PointXYZ> combinedCloud = combinePointClouds(clouds);
         std::cout << "Combined cloud has " << combinedCloud.size() << " points." << std::endl;
+
         std::vector<unsigned char> response = pclCloudToPCDBytes(combinedCloud);
         return point_cloud{mime_type, response};
     }
@@ -172,6 +222,8 @@ class JoinPointClouds : public Camera, public Reconfigurable {
     using CameraTransformationPair = std::pair<std::shared_ptr<Camera>, std::shared_ptr<Eigen::Matrix4f>>;
     std::vector<CameraTransformationPair> camTransformPairs;
     std::string targetFrame;
+    bool usingICP;
+    int proximityThreshold;
 };
 
 std::vector<std::string> validate(ResourceConfig cfg) {

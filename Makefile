@@ -19,4 +19,5 @@ setup:
 	sudo apt-get install -qqy \
 		libpcl-dev \
 		libmpich-dev \
+		libflann-dev \
 		cmake

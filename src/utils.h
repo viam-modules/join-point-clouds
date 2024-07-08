@@ -12,6 +12,7 @@
 
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
+#include <pcl/registration/icp.h>
 
 class ViamOrientationVector {
 public:
@@ -44,5 +45,10 @@ std::vector<unsigned char> pclCloudToPCDBytes(const pcl::PointCloud<pcl::PointXY
 RawPCD parseRawPCD(const std::vector<unsigned char>& input);
 // Converts RawPCD struct to pcl::PointCloud
 pcl::PointCloud<pcl::PointXYZ>::Ptr convertToPointCloud(const RawPCD& rawPCD);
+// Aligns source cloud to target cloud using PCL's ICP methods
+pcl::PointCloud<pcl::PointXYZ>::Ptr alignPointCloudsUsingICP(
+    pcl::PointCloud<pcl::PointXYZ>::Ptr source,
+    pcl::PointCloud<pcl::PointXYZ>::Ptr target,
+    int proximityThreshold);
 // Concatenates a vector of PCL clouds into one cloud
 pcl::PointCloud<pcl::PointXYZ> combinePointClouds(const std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr>& clouds);

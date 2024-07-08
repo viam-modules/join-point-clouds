@@ -28,6 +28,7 @@ AppDir:
     include:
     - libprotobuf32:arm64
     - libpcl-common1.13:arm64
+    - libpcl-search1.13:arm64
   files:
     include:
     - /usr/local/lib/libviamsdk* 

@@ -10,7 +10,7 @@ enable_language(C)  # required for MPI
 
 find_package(MPI REQUIRED)
 find_package(viam-cpp-sdk REQUIRED)
-find_package(PCL 1.8 REQUIRED COMPONENTS common io)
+find_package(PCL 1.8 REQUIRED COMPONENTS common io kdtree registration)
 
 add_executable(join-point-clouds src/main.cpp src/utils.cpp)
 
