@@ -46,7 +46,7 @@ Fill in the attributes as applicable to the component, according to the example 
 
 Make sure to set up the `source_cam` components frame system data accurately for best results.
 
-The following attributes are available for the `ultrasonic` component:
+The following attributes are available for the `join_point_cloud` component:
 
 <!-- prettier-ignore -->
 | Attribute | Type | Required? | Description |
