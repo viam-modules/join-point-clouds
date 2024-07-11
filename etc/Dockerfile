@@ -46,7 +46,7 @@ RUN apt-get -y --no-install-recommends install -t llvm-toolchain-bookworm-15 \
 
 RUN mkdir -p /root/opt/src
 
-# install Viam C++ SDK from source frozen at a commit
+# install Viam C++ SDK from source at a frozen commit
 ENV PINNED_COMMIT_HASH="5461780d4a6bcab18ed4cba51be1de2feb76dddf"
 RUN cd /root/opt/src && \
     git clone https://github.com/viamrobotics/viam-cpp-sdk && \
