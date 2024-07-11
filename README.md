@@ -1,5 +1,5 @@
 # Join Point Clouds
-The `join_color_depth` model uses [Point Cloud Library (PCL)](https://github.com/PointCloudLibrary/pcl) to combine the PCD outputs of depth cameras already registered in your config to create a joined point cloud output. It uses the [Viam builtin frame system](https://docs.viam.com/services/frame-system/), and optionally the [iterative closest points (ICP) algorithm](https://pointclouds.org/documentation/classpcl_1_1_iterative_closest_point.html), to align and combine the clouds within a single frame.
+The `join_point_clouds` model uses [Point Cloud Library (PCL)](https://github.com/PointCloudLibrary/pcl) to combine the PCD outputs of depth cameras already registered in your config to create a joined point cloud output. It uses the [Viam builtin frame system](https://docs.viam.com/services/frame-system/), and optionally the [iterative closest points (ICP) algorithm](https://pointclouds.org/documentation/classpcl_1_1_iterative_closest_point.html), to align and combine the clouds within a single frame.
 
 Note: combining PCDs with RGB data is currently unsupported.
 
