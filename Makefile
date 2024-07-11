@@ -7,6 +7,18 @@ $(BUILD_DIR)/join-point-clouds:
 	$(CMAKE) -G Ninja -B $(BUILD_DIR) .
 	$(CMAKE) --build $(BUILD_DIR) --target join-point-clouds
 
+# Docker
+BUILD_CMD = docker buildx build --pull $(BUILD_PUSH) --force-rm --no-cache --build-arg MAIN_TAG=$(MAIN_TAG) --build-arg BASE_TAG=$(BUILD_TAG) --platform linux/$(BUILD_TAG) -f $(BUILD_FILE) -t '$(MAIN_TAG):$(BUILD_TAG)' .
+BUILD_PUSH = --load
+BUILD_FILE = ./etc/Dockerfile
+
+# CI target that automates pushes, avoid for local
+docker: MAIN_TAG = ghcr.io/viam-modules/join-point-clouds
+docker: BUILD_TAG = arm64
+docker: BUILD_PUSH = --push
+docker:
+	$(BUILD_CMD)
+
 appimage: $(BUILD_DIR)/join-point-clouds
 	appimage-builder --recipe packaging/appimage-builder.yml
 	chmod +x viam-camera-join-point-clouds-latest-aarch64.AppImage

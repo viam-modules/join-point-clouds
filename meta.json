@@ -9,11 +9,5 @@
       "model": "viam:join-camera:join-point-clouds"
     }
   ],
-  "build": {
-    "setup": "make setup",
-    "build": "make appimage",
-    "path": "viam-camera-join-point-clouds-latest-aarch64.AppImage",
-    "arch" : ["linux/amd64", "linux/arm64"]
-  },
   "entrypoint": "viam-camera-join-point-clouds-latest-aarch64.AppImage"
 }
