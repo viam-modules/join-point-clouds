@@ -1,5 +1,5 @@
 # Join Point Clouds
-The `join_point_clouds` model uses [Point Cloud Library (PCL)](https://github.com/PointCloudLibrary/pcl) to combine the PCD outputs of depth cameras already registered in your config to create a joined point cloud output. It uses the [Viam builtin frame system](https://docs.viam.com/services/frame-system/), and optionally the [iterative closest points (ICP) algorithm](https://pointclouds.org/documentation/classpcl_1_1_iterative_closest_point.html), to align and combine the clouds within a single frame.
+The `join-point-clouds` model uses [Point Cloud Library (PCL)](https://github.com/PointCloudLibrary/pcl) to combine the PCD outputs of depth cameras already registered in your config to create a joined point cloud output. It uses the [Viam builtin frame system](https://docs.viam.com/services/frame-system/), and optionally the [iterative closest points (ICP) algorithm](https://pointclouds.org/documentation/classpcl_1_1_iterative_closest_point.html), to align and combine the clouds within a single frame.
 
 Note: combining PCDs with RGB data is currently unsupported.
 
@@ -22,7 +22,7 @@ Fill in the attributes as applicable to the component, according to the example 
         ],
         "target_frame": "world" | "<name-of-frame-in-frame-system>",
         "merge_method": "naive" | "icp",
-        "proximity_threshold_mm": 0.1
+        "proximity_threshold_mm": 0.05
       },
       "frame": {  // frame system setup
         "parent": "world",
@@ -44,9 +44,9 @@ Fill in the attributes as applicable to the component, according to the example 
     },
 ```
 
-Make sure to set up the `source_cam` components frame system data accurately for best results.
+Make sure to set up the `source_cameras` components frame system data accurately for best results.
 
-The following attributes are available for the `join_point_cloud` component:
+The following attributes are available for the `join-point-clouds` component:
 
 <!-- prettier-ignore -->
 | Attribute | Type | Required? | Description |
