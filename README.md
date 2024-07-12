@@ -14,7 +14,7 @@ Fill in the attributes as applicable to the component, according to the example 
       "name": "jpc-component",
       "namespace": "rdk",
       "type": "camera",
-      "model": "viam:camera:join-point-clouds",
+      "model": "viam:join-camera:join-point-clouds",
       "attributes": {
         "source_cameras": [
           "pcd-cam-1",
