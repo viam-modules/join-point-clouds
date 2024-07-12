@@ -1,13 +1,12 @@
 name: Build AppImage and push to registry
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-
 on:
   workflow_dispatch:
+  # release:
+  #   types: [published]
   push:
-    tags:
-      - '*'
+    branches:
+      '**'
 
 jobs:
   appimage:
@@ -52,6 +51,6 @@ jobs:
         uses: viamrobotics/upload-module@main
         with:
           platform: linux/arm64
-          version: ${{ github.ref_name }}
+          version: 0.0.1
           key-id: ${{ secrets.viam_key_id }}
           key-value: ${{ secrets.viam_key_value }}
