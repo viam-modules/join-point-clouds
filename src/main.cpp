@@ -266,7 +266,7 @@ std::vector<std::string> validate(ResourceConfig cfg) {
 
 int main(int argc, char** argv) {
     API camera_api = API::get<Camera>();
-    Model m("viam", "camera", "join-point-clouds");
+    Model m("viam", "join-camera", "join-point-clouds");
 
     std::shared_ptr<ModelRegistration> mr = std::make_shared<ModelRegistration>(
         camera_api,
