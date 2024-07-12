@@ -13,6 +13,9 @@ jobs:
     name: Publish Join Point Clouds
     timeout-minutes: 30
     runs-on: buildjet-8vcpu-ubuntu-2204-arm
+    container:
+      image: ghcr.io/viamrobotics/viam-camera-realsense:arm64
+      options: --platform linux/arm64
 
     steps:
       - name: Log in to GitHub Container Registry
