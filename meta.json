@@ -9,5 +9,5 @@
       "model": "viam:join-camera:join-point-clouds"
     }
   ],
-  "entrypoint": "viam-camera-join-point-clouds-latest-aarch64.AppImage"
+  "entrypoint": "viam-jpc.AppImage"
 }

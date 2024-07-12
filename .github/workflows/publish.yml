@@ -1,0 +1,57 @@
+name: Build AppImage and push to registry
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  appimage:
+    name: Publish Join Point Clouds
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker container for arm64
+        run: |
+          docker buildx create --use
+          docker buildx inspect --bootstrap
+          docker build --platform linux/arm64 -t ghcr.io/viam-modules/join-point-clouds:arm64 .
+
+      - name: Build module
+        run: make appimage TAG_VERSION="${{ github.ref_name }}"
+
+      - name: Bundle module
+        run: |
+          mv viam-camera-join-point-clouds-latest-aarch64.AppImage viam-jpc.AppImage
+          tar czf module.tar.gz viam-jpc.AppImage
+
+      - name: Upload module
+        uses: viamrobotics/upload-module@main
+        with:
+          platform: linux/arm64
+          version: ${{ github.ref_name }}
+          key-id: ${{ secrets.viam_key_id }}
+          key-value: ${{ secrets.viam_key_value }}
