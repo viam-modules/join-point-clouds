@@ -1,6 +1,8 @@
 build/
 AppDir/
 appimage-build/
+
 .vscode
 .DS_Store
 *.AppImage
+*.tar.gz

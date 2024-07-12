@@ -23,6 +23,11 @@ appimage: $(BUILD_DIR)/join-point-clouds
 	appimage-builder --recipe packaging/appimage-builder.yml
 	chmod +x viam-camera-join-point-clouds-latest-aarch64.AppImage
 
+module.tar.gz: appimage
+	mv viam-camera-join-point-clouds-latest-aarch64.AppImage viam-jpc.AppImage
+	tar czf module.tar.gz viam-jpc.AppImage
+	rm viam-jpc.AppImage
+
 clean:
 	rm -rf build *.AppImage
 
