@@ -1,3 +1,3 @@
 join-point-clouds:
     default: true
-    image_arm64: ghcr.io/viamrobotics/viam-camera-realsense:arm64
+    image_arm64: ghcr.io/viam-modules/join-point-clouds:arm64

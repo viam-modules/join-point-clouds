@@ -1,0 +1,30 @@
+name: Publish Docker Image
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'main'
+    paths:
+      - 'etc/Dockerfile'
+
+jobs:
+  docker:
+    name: Build Docker Image
+    permissions:
+      packages: write
+    timeout-minutes: 45
+    runs-on: buildjet-16vcpu-ubuntu-2204-arm
+    steps:
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Build and Push
+        run: make docker
