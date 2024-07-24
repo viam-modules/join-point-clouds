@@ -15,13 +15,6 @@ jobs:
       options: --platform linux/arm64
 
     steps:
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Check out code
         uses: actions/checkout@v3
 
@@ -35,7 +28,7 @@ jobs:
       - name: Upload module
         uses: viamrobotics/upload-module@main
         with:
-          platform: ${{ github.ref_name }}
-          version: 0.0.4
+          platform: "linux/arm64"
+          version: ${{ github.ref_name }}
           key-id: ${{ secrets.viam_key_id }}
           key-value: ${{ secrets.viam_key_value }}
