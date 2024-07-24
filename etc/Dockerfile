@@ -26,14 +26,16 @@ RUN apt-get -y --no-install-recommends install \
     libxtensor-dev \
     libusb-1.0-0-dev \
     libudev-dev \
-    libgtk-3-dev \ 
+    libgtk-3-dev \
     ninja-build \
     pkg-config \
     protobuf-compiler-grpc \
     software-properties-common \
     sudo \
-    wget
-
+    wget \
+    libpcl-dev \
+    libmpich-dev \
+    libflann-dev
 
 RUN bash -c 'wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key|apt-key add -'
 RUN apt-add-repository -y 'deb http://apt.llvm.org/bookworm/ llvm-toolchain-bookworm-15 main'
