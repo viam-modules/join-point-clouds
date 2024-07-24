@@ -2,11 +2,8 @@ name: Build AppImage and push to registry
 
 on:
   workflow_dispatch:
-  # release:
-  #   types: [published]
-  push:
-    branches:
-      '**'
+  release:
+    types: [published]
 
 jobs:
   appimage:
