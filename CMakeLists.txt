@@ -12,13 +12,15 @@ find_package(MPI REQUIRED)
 find_package(viam-cpp-sdk REQUIRED)
 find_package(PCL 1.8 REQUIRED COMPONENTS common io kdtree registration)
 
-add_executable(join-point-clouds src/main.cpp src/utils.cpp)
-
-target_link_libraries(join-point-clouds PUBLIC viam-cpp-sdk::viamsdk ${CMAKE_DL_LIBS} ${PCL_LIBRARIES})
-
+# Explicitly set the PCL directory paths
+set(PCL_DIR /usr/lib/aarch64-linux-gnu/cmake/pcl)
 include_directories(${PCL_INCLUDE_DIRS} include)
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
+
+add_executable(join-point-clouds src/main.cpp src/utils.cpp)
+
+target_link_libraries(join-point-clouds PUBLIC viam-cpp-sdk::viamsdk ${CMAKE_DL_LIBS} ${PCL_LIBRARIES})
 
 target_compile_options(join-point-clouds PRIVATE
     -O2
