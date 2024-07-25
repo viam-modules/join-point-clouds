@@ -8,8 +8,9 @@ project(join-point-clouds
 set(CMAKE_CXX_STANDARD 17)
 enable_language(C)  # required for MPI
 
-# Explicitly set the PCL directory paths
-set(CMAKE_PREFIX_PATH "/usr/lib/aarch64-linux-gnu/cmake/pcl")
+# Ensure PCL directory paths are correctly set
+set(PCL_DIR "/usr/lib/aarch64-linux-gnu/cmake/pcl")
+
 find_package(PCL 1.8 REQUIRED COMPONENTS common io kdtree registration)
 find_package(MPI REQUIRED)
 find_package(viam-cpp-sdk REQUIRED)
