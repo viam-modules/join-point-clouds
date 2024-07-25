@@ -37,7 +37,7 @@ RUN apt-get -y --no-install-recommends install \
     libmpich-dev \
     libflann-dev
 
-RUN bash -c 'wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -'
+RUN bash -c 'wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key|apt-key add -'
 RUN apt-add-repository -y 'deb http://apt.llvm.org/bookworm/ llvm-toolchain-bookworm-15 main'
 RUN apt-get update
 
@@ -46,9 +46,6 @@ RUN apt-get -y --no-install-recommends install -t llvm-toolchain-bookworm-15 \
     clang-tidy-15
 
 RUN mkdir -p /root/opt/src
-
-# Set CMAKE_PREFIX_PATH environment variable
-ENV CMAKE_PREFIX_PATH="/usr/lib/aarch64-linux-gnu/cmake/pcl"
 
 # install Viam C++ SDK from source at a frozen commit
 ENV PINNED_COMMIT_HASH="5461780d4a6bcab18ed4cba51be1de2feb76dddf"
@@ -60,7 +57,7 @@ RUN cd /root/opt/src && \
     cd build && \
     cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DVIAMCPPSDK_USE_DYNAMIC_PROTOS=ON -DVIAMCPPSDK_OFFLINE_PROTO_GENERATION=ON -DCMAKE_INSTALL_PREFIX=/usr/local .. -G Ninja && \
     ninja all -j 4 && \
-    ninja install -j 4 && \
+	ninja install -j 4 && \
     rm -rf /root/opt/src/viam-cpp-sdk
 
 # install appimage-builder deps
@@ -72,13 +69,11 @@ RUN apt install -y \
     fuse \
     libgdk-pixbuf2.0-dev \
     patchelf \
-    python3-pip \
-    python3-setuptools \
+    python3-pip python3-setuptools \
     squashfs-tools \
     strace \
     vim \
-    util-linux \
-    zsync
+    util-linux zsync
 
 RUN pip3 install -U pip setuptools urllib3==1.26.12 requests==2.26.0 --break-system-packages
 
