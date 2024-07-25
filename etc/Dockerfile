@@ -39,7 +39,6 @@ RUN apt-get -y --no-install-recommends install \
 
 RUN bash -c 'wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key|apt-key add -'
 RUN apt-add-repository -y 'deb http://apt.llvm.org/bookworm/ llvm-toolchain-bookworm-15 main'
-RUN apt-add-repository -y 'deb http://apt.llvm.org/bookworm/ llvm-toolchain-bookworm-15 main'
 RUN apt-get update
 
 RUN apt-get -y --no-install-recommends install -t llvm-toolchain-bookworm-15 \
