@@ -3,9 +3,9 @@ The `join-point-clouds` model uses [Point Cloud Library (PCL)](https://github.co
 
 Note: combining PCDs with RGB data is currently unsupported.
 
-## Configure your `join-point-clouds` component
-
 Navigate to the **CONFIGURE** tab of your machine's page in [the Viam app](https://app.viam.com), searching for the modular component `join-point-clouds` and selecting the model `viam:join-camera:join-point-clouds`.
+
+## Configure your `join-point-clouds` component
 
 Fill in the attributes as applicable to the component, according to the example below.
 
