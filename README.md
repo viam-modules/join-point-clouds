@@ -7,8 +7,7 @@ Navigate to the **CONFIGURE** tab of your machine's page in [the Viam app](https
 
 ## Configure your `join-point-clouds` component
 
-Fill in the attributes as applicable to the component, according to the example below. 
-Make sure there are cameras that can return pointclouds already configured on your machine.
+Copy and paste the following attributes into your JSON configuration:
 
 ```json
     {
