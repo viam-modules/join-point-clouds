@@ -6,7 +6,8 @@
   "models": [
     {
       "api": "rdk:component:camera",
-      "model": "viam:join-camera:join-point-clouds"
+      "model": "viam:join-camera:join-point-clouds",
+      "markdown_link": "README.md#configure-your-join-point-clouds-component"
     }
   ],
   "entrypoint": "viam-jpc.AppImage"

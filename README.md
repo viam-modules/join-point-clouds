@@ -7,29 +7,25 @@ Navigate to the **CONFIGURE** tab of your machine's page in [the Viam app](https
 
 ## Configure your `join-point-clouds` component
 
-Fill in the attributes as applicable to the component, according to the example below.
+Fill in the attributes as applicable to the component, according to the example below. 
+Make sure there are cameras that can return pointclouds already configured on your machine.
 
 ```json
     {
-      "name": "jpc-component",
-      "namespace": "rdk",
-      "type": "camera",
-      "model": "viam:join-camera:join-point-clouds",
-      "attributes": {
         "source_cameras": [
           "pcd-cam-1",
-          "pcd-cam-2"  // other camera components to get PCDs to join from
+          "pcd-cam-2"
         ],
-        "target_frame": "world" | "<name-of-frame-in-frame-system>",
-        "merge_method": "naive" | "icp",
+        "target_frame": "world",
+        "merge_method": "naive",
         "proximity_threshold_mm": 0.05
       },
-      "frame": {  // frame system setup
+      "frame": {
         "parent": "world",
         "translation": {
           "x": 0,
           "y": 0,
-          "z": 0  // modify translation based on position in frame
+          "z": 0
         },
         "orientation": {
           "type": "quaternion",
@@ -37,18 +33,16 @@ Fill in the attributes as applicable to the component, according to the example 
             "x": 0,
             "y": 0,
             "z": 0,
-            "w": 1  // modify quaternion based on rotation
+            "w": 1
           }
         }
       }
-    },
 ```
+Make sure to set up the `source_cameras` components [frame system](https://docs.viam.com/operate/mobility/define-geometry/) data accurately for best results.
 
-Make sure to set up the `source_cameras` components frame system data accurately for best results.
-
+### Attributes
 The following attributes are available for the `join-point-clouds` component:
 
-<!-- prettier-ignore -->
 | Attribute | Type | Required? | Description |
 | --------- | ---- | --------- | ----------- |
 | `source_cameras` | []string | **Required** | The list of existing camera components in your machine to get input PCDs from |
